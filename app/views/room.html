@@ -1,0 +1,63 @@
+<div class='header'>
+    <a ng-href='#'>chat.gif</a>
+</div>
+<div ng-hide='pageLoaded'>
+    <center><h2>Loading... please wait</h2></center>
+</div>
+<main ng-show='pageLoaded'>
+    <section>
+        <ul class='row gifs' ng-repeat='gif in gifs'>
+            <li>
+                <div class="col-xs-4">
+                    <img ng-src='{{gif.url}}' />
+                </div>
+                
+                <div class="col-xs-2"></div>
+                
+                <div class="col-xs-6"> 
+                    <span class='date'>{{gif.date | date:'short'}}</span>
+                    <div class='comments'>
+                        {{gif.comment}}
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </section>
+
+    <section class='controls'>
+        <div class='video'>
+            <video ng-if='mediaON' id="video" width="320" height="200" autoplay></video>
+                <div class='pie'>
+                    <pie ng-if='camera.isRecording()'></pie>
+                </div>
+        </div><br/>
+        
+        <input ng-show='mediaON' type='text' ng-keydown="keypress($event)" ng-disabled="camera.isRecording()" ng-model='comment' /><br /> <br />
+        
+        
+        <select  ng-show='!mediaON'  
+                 ng-disabled="camera.isRecording()"  
+                 ng-model="videoSource"  
+                 ng-change='getUserMedia()' 
+                 ng-options="source.name for source in sources">
+
+                <option value=''>-- Select Camera  --</option>
+        </select>
+
+        <button class='btn btn-success btn-lg camera' ng-if='mediaON' ng-disabled="camera.isRecording()" ng-click='recordGIF()'>
+            <span class="glyphicon glyphicon-camera"></span>
+        </button>
+        
+        <button class='btn btn-danger camera' ng-if='mediaON' ng-click='stop()'>OFF</button><br /><br />
+    
+
+    </section>
+
+    <section>
+        <canvas id='canvas1' width='135' height='100'></canvas>
+        <canvas id='canvas2' width='135' height='100'></canvas>
+        <canvas id='canvas3' width='135' height='100'></canvas>
+        <canvas id='canvas4' width='135' height='100'></canvas>
+        <canvas id='canvas5' width='135' height='100'></canvas>
+    </section>
+</main>

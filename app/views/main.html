@@ -1,0 +1,11 @@
+<div class="jumbotron">
+	<h1>chat.gif</h1>
+	<br />
+	<form name='join' ng-submit='joinRoom(room)' class="form-group">
+		<input  type='text' name="roomname" ng-model='room'  ng-pattern="/^[a-zA-z0-9]{1,24}$/" required/>
+		 <span ng-show="join.roomname.$error.pattern" class="alert alert-danger" style="padding:0px"><br />YOU DUN GOOFED</span>
+		 <br /><br />
+  		<button class='btn btn-success' type='submit'>JOIN ROOM</button>
+  	</form>
+</div>
+ <footer></footer>

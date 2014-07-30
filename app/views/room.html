@@ -1,5 +1,5 @@
 <div class='header'>
-    <a ng-href='#'>chat.gif</a>
+    <a ng-href='#' ng-click='stopMedia()'>snapGIF</a>
 </div>
 <div ng-show='pageLoading'>
     <center>
@@ -51,7 +51,7 @@
             <span class="glyphicon glyphicon-camera"></span>
         </button>
         
-        <button class='btn btn-danger camera' ng-if='mediaON' ng-click='stop()'>OFF</button><br /><br />
+        <button class='btn btn-danger camera' ng-if='mediaON' ng-click='stopMedia()'>OFF</button><br /><br />
     
 
     </section>

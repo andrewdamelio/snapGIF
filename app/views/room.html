@@ -1,10 +1,13 @@
 <div class='header'>
     <a ng-href='#'>chat.gif</a>
 </div>
-<div ng-hide='pageLoaded'>
-    <center><h2>Loading... please wait</h2></center>
+<div ng-show='pageLoading'>
+    <center>
+        <i style='font-size: 100px' class='loading glyphicon glyphicon-hdd'></i>
+        <h3 >Loading... Please wait</h3>
+    </center>
 </div>
-<main ng-show='pageLoaded'>
+<main ng-hide='pageLoading'>
     <section>
         <ul class='row gifs' ng-repeat='gif in gifs'>
             <li>

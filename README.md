@@ -1,4 +1,4 @@
-chat.gif
+snapGIF
 =======
 <a href='http://bittopia.ca/dev/chat/'>DEMO</a>
 

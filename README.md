@@ -1,6 +1,6 @@
 snapGIF
 =======
-<a href='http://bittopia.ca/dev/chat/'>DEMO</a>
+<a href='http://snapgif.com'>DEMO</a>
 
 
 Edna Piranha's creation <a href='https://chat.meatspac.es/'>Meatspaces</a> is absolutely amazing.

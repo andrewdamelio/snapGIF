@@ -32,8 +32,8 @@ app.controller('MainCtrl',['$scope', '$location', function($scope, $location) {
     };
   }]);
 
-app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', 'FIREBASE_URL', 'IMGUR_API_KEY', '$routeParams', '$q', '$location',
-                 function ($scope, $timeout, helperService, $firebase, FIREBASE_URL, IMGUR_API_KEY, $routeParams, $q, $location) {
+app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', 'FIREBASE_URL', '$routeParams', '$q', '$location',
+                 function ($scope, $timeout, helperService, $firebase, FIREBASE_URL, $routeParams, $q, $location) {
 
     //Compatibility
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
@@ -44,16 +44,15 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
     if (!re.test($routeParams.id)) {
       $location.url('/');
     }
-    else { 
+    else {
 
       var ref = new Firebase(FIREBASE_URL+$routeParams.id);
       var localMediaStream;
       
       var userMediaQ = $q.defer();
-      var allUserMediaQ = $q.all([userMediaQ.promise]);
-      
       var fireQ = $q.defer();
-      var allFireQ = $q.all([fireQ.promise]);
+
+      var all = $q.all([fireQ.promise, userMediaQ.promise]);
 
       $scope.pageLoading = true;
 
@@ -70,35 +69,39 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
                 date: new Date()
               });
           }
+          console.log('firebase loaded');
           fireQ.resolve();
         });
 
       if ($scope.gifs.$getIndex().length > 0) {
+        console.log('firebase loaded from cache');
         fireQ.resolve();
       }
 
-      allFireQ.then(function(data) {
-        console.log('firebase loaded');
-        if (navigator.webkitGetUserMedia) {
-          MediaStreamTrack.getSources(gotSources);
-        }
-        else {
-          userMediaQ.resolve();
-          //This browser does not support MediaStreamTrack.
-        }
-      }, function() {console.log('ERROR');});
-      
-
-      allUserMediaQ.then(function(data) {
-          console.log('stream loaded');
-          $scope.pageLoading = false;
-          if ($scope.sources.length === 0) {
-            $scope.sources.push({name : 'Camera Front', id:1});
-          }
-        }, function() {console.log('ERROR');});
+      if (navigator.webkitGetUserMedia) {
+        MediaStreamTrack.getSources(gotSources);
+      }
+      else {
+        console.log('stream assumed');
+        $scope.sources.push({name : 'Camera Front', id:1});
+        userMediaQ.resolve();
+        //This browser does not support MediaStreamTrack.
       }
 
-      function gotSources(sourceInfos) {
+      all.then(function(data) {
+          $scope.pageLoading = false;
+        }, function() {
+          console.log('ERROR');
+          $timeout(function() {
+            $('.loading').removeClass('glyphicon-hdd');
+            $('.loading').addClass('glyphicon-warning-sign');
+            $('h3').html('Something went wrong :(<br />Please refresh your browser.');
+          });
+
+        });
+    }
+
+    function gotSources(sourceInfos) {
           $scope.sources = [];
           $scope.videoSources=0;
           for (var i = 0; i !== sourceInfos.length; ++i) {
@@ -109,21 +112,26 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
               $scope.sources.push({name : text, id:sourceInfo.id});
             }
           }
-          userMediaQ.resolve($scope.sources);
+          if ($scope.sources) {
+            console.log('stream loaded');
+            userMediaQ.resolve($scope.sources);
+          }
+          else {
+            userMediaQ.reject();
+          }
+
         }
 
-      $scope.getUserMedia = function () {
+    $scope.getUserMedia = function () {
           $scope.mediaON = true;
 
           if ( navigator.webkitGetUserMedia) {
-            MediaStreamTrack.getSources(gotSources);
             $scope.constraints = {};
             $scope.constraints.video = {
               optional: [{
                   sourceId: $scope.videoSource.id
                 }]
               };
-            $scope.sources = [];
           }
           else {
             //This browser does not support MediaStreamTrack.
@@ -135,7 +143,7 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
           navigator.getUserMedia($scope.constraints, successCallback, errorCallback);
         };
 
-      function successCallback(stream) {
+    function successCallback(stream) {
           if (video.mozSrcObject !== undefined) {
             video.mozSrcObject = stream;
           }
@@ -145,25 +153,26 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
           localMediaStream = stream;
         }
 
-      function errorCallback(error) {
+    function errorCallback(error) {
           console.log('navigator.getUserMedia error: ', error);
         }
       
-      $scope.keypress = function (e) {
+    $scope.keypress = function (e) {
           if (e.keyCode !== 13) {
             return;
           }
           $scope.recordGIF();
         };
 
-      $scope.stopMedia = function () {
+    $scope.stopMedia = function () {
           $scope.mediaON = false;
           if (localMediaStream) {
-             localMediaStream.stop();
+            localMediaStream.stop();
           }
+          $scope.videoSource='';
         };
 
-      $scope.recordGIF = function () {
+    $scope.recordGIF = function () {
           $scope.camera.recordingOn();
           $scope.text = $scope.comment;
           $scope.comment = '';
@@ -174,12 +183,12 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
           var context4 = document.getElementById('canvas4').getContext('2d');
           var context5 = document.getElementById('canvas5').getContext('2d');
 
-          $('pie').removeClass('ten');
-          $('pie').removeClass('twentyfive');
-          $('pie').removeClass('fifty');
-          $('pie').removeClass('seventyfive');
-          $('pie').removeClass('onehundred');
+          var pieClasses = ['ten', 'twentyfive', 'fifty', 'seventyfive', 'onehumdred'];
 
+          for (var i=0; i<pieClasses; i++) {
+            $('pie').removeClass(pieClasses[i]);
+          }
+          
           var encoder = new GIFEncoder();
 
           encoder.setRepeat(0);
@@ -226,33 +235,29 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
 
               
               helperService.addGIF(keys, encode64(binaryGif)).then(function (result) {
-                  console.log("added");
-                  console.log(result);
                   var id = result.data.id;
-                      var imgsrc = 'https://imgur.com/' + id + '.gif';
+                  var imgsrc = 'https://imgur.com/' + id + '.gif';
                       
-                      if (keys.length > 30) {
-                          helperService.deleteGIF($scope.gifs[keys[0]].deleteHash);
-                          $scope.gifs.$remove(keys[0]);
-                      }
+                  if (keys.length > 30) {
+                    helperService.deleteGIF($scope.gifs[keys[0]].deleteHash);
+                    $scope.gifs.$remove(keys[0]);
+                  }
 
-                      $scope.gifs.$add({
-                          url: imgsrc,
-                          comment: $scope.text,
-                          date: new Date(),
-                          deleteHash : result.data.deletehash
-                        });              
-
-              }, function (reason) {
+                  $scope.gifs.$add({
+                    url: imgsrc,
+                    comment: $scope.text,
+                    date: new Date(),
+                    deleteHash : result.data.deletehash
+                  });
+                }, function (reason) {
                   console.log(reason);
-              });              
-
+                });
             }, 2500);
           }
-      };
+        };
   }]);
 
-app.factory('helperService', function (IMGUR_API_KEY, $q) {
+app.factory('helperService', [ 'IMGUR_API_KEY', '$q',  function (IMGUR_API_KEY, $q) {
     var recording = false;
 
     var isRecording = function () {
@@ -270,43 +275,39 @@ app.factory('helperService', function (IMGUR_API_KEY, $q) {
 
     var deleteGIF = function(hash) {
       if (hash) {
-          $.ajax({
-            url: 'https://api.imgur.com/3/image/'+hash,
-            type: 'DELETE',
-                success: function (result) {},
-                error: function (err) {
-                    console.log(err);
-                },
-                beforeSend: function (xhr) {
-                    xhr.setRequestHeader('Authorization', IMGUR_API_KEY);
-                }
-          });      
+        $.ajax({
+          url: 'https://api.imgur.com/3/image/'+hash,
+          type: 'DELETE',
+          success: function (result) {},
+          error: function (err) {
+            console.log(err);
+          },
+          beforeSend: function (xhr) {
+            xhr.setRequestHeader('Authorization', IMGUR_API_KEY);
+          }
+        });
       }
     };
 
     var addGIF = function(keys, data) {
-  
-        var deferredAdd = $q.defer();
-        $.ajax({
-                  url: 'https://api.imgur.com/3/upload',
-                  type: 'POST',
-                  datatype: 'base64',
-                  data: data,
-                  success: function (result) {
-                    console.log(result);
-                        deferredAdd.resolve(result);
-                    },
-                  error: function (err) {
-                      console.log(err);
-                    },
-                  beforeSend: function (xhr) {
-                      xhr.setRequestHeader('Authorization', IMGUR_API_KEY);
-                    }
-        });
-
-        return deferredAdd.promise;
-
-    }
+      var deferredAdd = $q.defer();
+      $.ajax({
+        url: 'https://api.imgur.com/3/upload',
+        type: 'POST',
+        datatype: 'base64',
+        data: data,
+        success: function (result) {
+          deferredAdd.resolve(result);
+        },
+        error: function (err) {
+          console.log(err);
+        },
+        beforeSend: function (xhr) {
+          xhr.setRequestHeader('Authorization', IMGUR_API_KEY);
+        }
+      });
+      return deferredAdd.promise;
+    };
 
     return {
         isRecording: isRecording,
@@ -316,7 +317,7 @@ app.factory('helperService', function (IMGUR_API_KEY, $q) {
         addGIF: addGIF
 
       };
-  });
+  }]);
 
 app.directive('footer', [function () {
   return {

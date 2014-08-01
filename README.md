@@ -5,7 +5,7 @@ snapGIF
 
 Edna Piranha's creation <a href='https://chat.meatspac.es/'>Meatspaces</a> is absolutely amazing.
 <br />
-This prototype was created to mimic Meatspaces but without using Node.js or socket.io. I also added the functionality of shareable rooms/channels. 
+snapGIF is a prototype, inspried by Meatspaces and built with shareable rooms/channels. 
 <br /><br />
 Built from a combination of: 
 <ul>

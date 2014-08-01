@@ -5,8 +5,7 @@ snapGIF
 
 Edna Piranha's creation <a href='https://chat.meatspac.es/'>Meatspaces</a> is absolutely amazing.
 <br />
-
-snapGIF is a prototype Meatspaces clone using Firebase and including shareable rooms/channels. 
+This prototype was created to mimic Meatspaces but without using Node.js or socket.io. I also added the functionality of shareable rooms/channels. 
 <br /><br />
 Built from a combination of: 
 <ul>
@@ -14,5 +13,6 @@ Built from a combination of:
         <li>HTML5</li>
         <li>Firebase</li>
         <li>gif.js</li>
+        <li>Imgur</li>
 </ul>    
 

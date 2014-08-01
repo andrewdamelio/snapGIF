@@ -5,7 +5,7 @@ snapGIF
 
 Edna Piranha's creation <a href='https://chat.meatspac.es/'>Meatspaces</a> is absolutely amazing.
 <br />
-snapGIF is a prototype, inspried by Meatspaces and built with shareable rooms/channels. 
+snapGIF is inspried by Meatspaces and built with shareable rooms/channels. 
 <br /><br />
 Built from a combination of: 
 <ul>

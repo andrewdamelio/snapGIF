@@ -1,15 +1,28 @@
 * {
-    box-sizing:border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
 }
 
-
 /* Space out content a bit */
+
 body {
   padding-top: 20px;
   padding-bottom: 20px;
+  font-size: 14px;
+  font-family: Helvetica, Arial, sans-serif;
+  width: 100%;
+  margin: auto;
+
+}
+
+ul {
+  list-style-type: none;
+  padding: 0px;
+  margin: 0px;
 }
 
 /* Everything but the jumbotron gets side spacing for mobile first views */
+
 .header,
 .marketing,
 .footer {
@@ -18,10 +31,13 @@ body {
 }
 
 /* Custom page header */
+
 .header {
   border-bottom: 1px solid #e5e5e5;
 }
+
 /* Make the masthead heading the same height as the navigation */
+
 .header h3 {
   margin-top: 0;
   margin-bottom: 0;
@@ -30,6 +46,7 @@ body {
 }
 
 /* Custom page footer */
+
 .footer {
   padding-top: 19px;
   color: #777;
@@ -37,164 +54,210 @@ body {
 }
 
 /* Customize container */
+
 @media (min-width: 768px) {
   .container {
     max-width: 730px;
   }
 }
+
 .container-narrow > hr {
   margin: 30px 0;
 }
 
 /* Main marketing message and sign up button */
+
 .jumbotron {
   text-align: center;
   border-bottom: 1px solid #e5e5e5;
 }
+
 .jumbotron .btn {
   font-size: 21px;
   padding: 14px 24px;
 }
 
+.jumbotron input {
+  margin-left: 2px;
+  width: 150px;
+}
+
 /* Supporting marketing content */
+
 .marketing {
   margin: 40px 0;
 }
+
 .marketing p + h4 {
   margin-top: 28px;
 }
 
+.title {
+  font-size: 25px;
+  padding: 5px;
+}
+
+
+
+.github :hover {
+  fill: white;
+}
+
+.loading {
+  -mos-transition: 3s all ease;
+  transition: 3s all ease;
+}
+
+.loading:hover {
+  color: red;
+}
+
+
+
+.header a:hover {
+    text-decoration: none;
+}
+
+.header {
+  width: 100%;
+  background: rgba(238,238,238,.8);
+  color: white;
+  padding: 10px;
+  font-size: 26px;
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.row {
+  padding: 2px;
+  border-bottom: 1px solid grey;
+}
+
+.comments {
+  font-weight: bold;
+  text-align: left;
+  overflow: auto;
+}
+
+.date {
+  font-size: 10px;
+}
+
+.wait {
+  cursor: wait;
+}
+
+.controls {
+  margin: auto;
+  padding-top: 25px;
+}
+
+.controls input {
+  width: 100%;
+}
+
+.camera {
+  width: 50px;
+  height: 50px;
+}
+
+canvas {
+  display: none;
+}
+
+
+.video {
+  width: 320px;
+  display: block;
+  position: relative;
+}
+
+
 /* Responsive: Portrait tablets and up */
+
 @media screen and (min-width: 768px) {
   /* Remove the padding we set earlier */
+
   .header,
   .marketing,
   .footer {
     padding-left: 0;
     padding-right: 0;
   }
+
   /* Space out the masthead */
+
   .header {
     margin-bottom: 30px;
   }
+
   /* Remove the bottom border on the jumbotron for visual effect */
+
   .jumbotron {
     border-bottom: 0;
+    font-size: 18px;
+  }
+
+  .jumbotron h1 {
+    font-size: 55px;
+  }
+
+  .jumbotron input {
+    margin-left: 5px;
+    width: 200px;
+  }
+
+  .title {
+    font-size: 35px;
+    padding: 5px;
+  }
+
+  .header .title{
+    font-size: 25px;
+  }
+
+  .comments {
+    font-size:23px;
   }
 }
 
-.github :hover {
-    fill: white;
-}
 
-.loading {
-   -webkit-transition: 3s all ease;
-   -mos-transition: 3s all ease;
-   -o-transition: 3s all ease;
-   -ms-transition: 3s all ease;
-   transition: 3s all ease;
-}
-
-.loading:hover {
-    color:red;
-
-}
-
-ul {
-    list-style-type: none;
-    padding:0px;
-    margin:0px;
-}
-body {
-    font-size: 14px;
-    font-family: Helvetica, Arial, sans-serif;
-    width:100%;
-    margin:auto;
-}
-.header {
-    width:100%;
-    background:rgba(238,238,238,.8);
-    color:white;
-    padding:10px;
-    font-size:26px;
-    text-align:center;
-    margin-bottom:25px;
-}
-.row {
-    width:100%;
-    padding:2px;
-    border-bottom:1px solid grey;
-}
-.comments {
-    font-weight:bold;
-    text-align:left;
-    overflow:auto;
-}
-.date {
-    font-size:10px;
-}
-
-.wait {
-   cursor: wait;
-}
-
-.controls {
-    margin:auto;
-    padding-top:25px;
-}
-.controsl button {
-    height:10px;
-}
-.controls input {
-    width:100%;
-}
-.camera {
-    width:50px;
-    height:50px;
-}
-canvas {
-    display:none;
-}
 pie {
-    width: 3em;
-    height: 3em;
-    display: block;
-    border-radius: 50%;
-    background-color: rgb(27, 161, 226);
-    border: 2px solid rgb(27, 161, 226);
-    background-image: linear-gradient(100deg, transparent 50%, white 50%), linear-gradient(90deg, white 50%, transparent 50%);
-    margin: 1em;
+  width: 3em;
+  height: 3em;
+  display: block;
+  border-radius: 50%;
+  background-color: rgb(27, 161, 226);
+  border: 2px solid rgb(27, 161, 226);
+  background-image: linear-gradient(100deg, transparent 50%, white 50%), linear-gradient(90deg, white 50%, transparent 50%);
+  margin: 1em;
 }
+
 .ten {
-    background-image: linear-gradient(100deg, transparent 50%, white 50%), linear-gradient(90deg, white 50%, transparent 50%);
+  background-image: linear-gradient(100deg, transparent 50%, white 50%), linear-gradient(90deg, white 50%, transparent 50%);
 }
+
 .twentyfive {
-    background-image: linear-gradient(180deg, transparent 50%, white 50%), linear-gradient(90deg, white 50%, transparent 50%);
+  background-image: linear-gradient(180deg, transparent 50%, white 50%), linear-gradient(90deg, white 50%, transparent 50%);
 }
+
 .fifty {
-    background-image: linear-gradient(90deg, white 50%, transparent 50%);
+  background-image: linear-gradient(90deg, white 50%, transparent 50%);
 }
+
 /* Slices greater than 50% require first gradient
    to be transparent -> green */
- .seventyfive {
-    background-image: linear-gradient(180deg, transparent 50%, rgb(27, 161, 226) 50%), linear-gradient(90deg, white 50%, transparent 50%);
+
+.seventyfive {
+  background-image: linear-gradient(180deg, transparent 50%, rgb(27, 161, 226) 50%), linear-gradient(90deg, white 50%, transparent 50%);
 }
+
 .onehundred {
-    background-image: none;
+  background-image: none;
 }
-.video {
-    width:320px;
-    display:block;
-    position:relative;
-}
+
 .pie {
-    position:absolute;
-    left:0px;
-    top:0;
-}
-@media (min-width:650px) {
-    body {
-        font-size: 18px;
-        width:750px;
-    }
+  position: absolute;
+  left: 0px;
+  top: 0;
 }

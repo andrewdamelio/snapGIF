@@ -9,296 +9,276 @@ var app = angular.module('app', [
 
 
 app.config(function ($routeProvider) {
-    $routeProvider
-      .when('/', {
-        templateUrl: 'views/main.html',
-        controller: 'MainCtrl'
-      })
-      .when('/:id', {
-        templateUrl: 'views/room.html',
-        controller: 'AppCtrl'
-      })
-      .otherwise({
-        redirectTo: '/'
+  $routeProvider
+    .when('/', {
+      templateUrl: 'views/main.html',
+      controller: 'MainCtrl'
+    })
+    .when('/:id', {
+      templateUrl: 'views/room.html',
+      controller: 'AppCtrl'
+    })
+    .otherwise({
+      redirectTo: '/'
+    });
+});
+
+app.constant('FIREBASE_URL', 'https://cats.firebaseio.com/');
+app.constant('IMGUR_API_KEY', 'Client-ID a022759b7efead8');
+
+app.controller('MainCtrl', ['$scope', '$location', function ($scope, $location) {
+  $scope.joinRoom = function (room) {
+    $location.url(room);
+  };
+}]);
+
+app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', 'FIREBASE_URL', '$routeParams', '$q', '$location', function ($scope, $timeout, helperService, $firebase, FIREBASE_URL, $routeParams, $q, $location) {
+  //Compatibility
+  navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+  window.URL = window.URL || window.webkitURL || window.mozURL || window.msURL;
+
+  var re = /^[a-zA-z0-9]{1,24}$/;
+  var roomName = $routeParams.id;
+  if (!re.test(roomName)) {
+    $location.url('/');
+  } else {
+    var ref = new Firebase(FIREBASE_URL + roomName);
+    var localMediaStream;
+    var userMediaQ = $q.defer();
+    var fireQ = $q.defer();
+    var all = $q.all([fireQ.promise, userMediaQ.promise]);
+
+    $scope.pageLoading = true;
+
+    $scope.camera = helperService;
+    $scope.sources = [];
+    $scope.constraints = {};
+    $scope.gifs = $firebase(ref);
+
+    $scope.gifs.$on('loaded', function () {
+      if ($scope.gifs.$getIndex().length === 0) {
+        $scope.gifs.$add({
+          url: 'https://imgur.com/h8bGicy.gif',
+          comment: 'Welcome to ' + roomName + ', I exist.',
+          date: new Date()
+        });
+      }
+      console.log('firebase loaded');
+      fireQ.resolve();
+    });
+
+    if ($scope.gifs.$getIndex().length > 0) {
+      console.log('firebase loaded from cache');
+      fireQ.resolve();
+    }
+
+    if (navigator.webkitGetUserMedia) {
+      MediaStreamTrack.getSources(gotSources);
+    } else {
+      //This browser does not support MediaStreamTrack.
+      console.log('stream assumed');
+      $scope.sources.push({name : 'Camera Front', id : 1});
+      userMediaQ.resolve();
+    }
+
+    all.then(function (data) {
+      $scope.pageLoading = false;
+    }, function () {
+      console.log('ERROR');
+      $timeout(function () {
+        $('.loading').removeClass('glyphicon-hdd');
+        $('.loading').addClass('glyphicon-warning-sign');
+        $('h3').html('Something went wrong :(<br />Please refresh your browser.');
       });
-  });
+    });
+  }
 
-app.constant('FIREBASE_URL', 'YOUR_FIREBASE_URL');
-app.constant('IMGUR_API_KEY', 'Client-ID YOUR API KEY');
+  function gotSources(sourceInfos) {
+    var sourceInfo;
+    var text;
+    var i;
 
-app.controller('MainCtrl',['$scope', '$location', function($scope, $location) {
-    $scope.joinRoom = function(room) {
-      $location.url(room);
-    };
-  }]);
-
-app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', 'FIREBASE_URL', '$routeParams', '$q', '$location',
-                 function ($scope, $timeout, helperService, $firebase, FIREBASE_URL, $routeParams, $q, $location) {
-
-    //Compatibility
-    navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
-    window.URL = window.URL || window.webkitURL || window.mozURL || window.msURL;
-
-    var re = /^[a-zA-z0-9]{1,24}$/;
-    
-    if (!re.test($routeParams.id)) {
-      $location.url('/');
+    $scope.sources = [];
+    $scope.videoSources = 0;
+    for (i = 0; i !== sourceInfos.length; ++i) {
+      sourceInfo = sourceInfos[i];
+      if (sourceInfo.kind === 'video') {
+        $scope.videoSources += 1;
+        text = sourceInfo.label || 'camera ' + ($scope.videoSources);
+        $scope.sources.push({name : text, id : sourceInfo.id});
+      }
     }
-    else {
+    if ($scope.sources) {
+      console.log('stream loaded');
+      userMediaQ.resolve($scope.sources);
+    } else {
+      userMediaQ.reject();
+    }
+  }
 
-      var ref = new Firebase(FIREBASE_URL+$routeParams.id);
-      var localMediaStream;
-      
-      var userMediaQ = $q.defer();
-      var fireQ = $q.defer();
-
-      var all = $q.all([fireQ.promise, userMediaQ.promise]);
-
-      $scope.pageLoading = true;
-
-      $scope.camera = helperService;
-      $scope.sources = [];
+  $scope.getUserMedia = function () {
+    $scope.mediaON = true;
+    if (navigator.webkitGetUserMedia) {
       $scope.constraints = {};
-      $scope.gifs = $firebase(ref);
-      
-      $scope.gifs.$on('loaded', function() {
-          if ($scope.gifs.$getIndex().length === 0) {
-            $scope.gifs.$add({
-                url: 'https://imgur.com/h8bGicy.gif',
-                comment: 'Welcome to ' +$routeParams.id + ', I exist.',
-                date: new Date()
-              });
-          }
-          console.log('firebase loaded');
-          fireQ.resolve();
-        });
+      $scope.constraints.video = {
+        optional: [{
+          sourceId: $scope.videoSource.id
+        }]
+      };
+    } else {
+      //This browser does not support MediaStreamTrack.
+      $scope.constraints = {};
+      $scope.constraints = {
+        video: true
+      };
+    }
+    navigator.getUserMedia($scope.constraints, successCallback, errorCallback);
+  };
 
-      if ($scope.gifs.$getIndex().length > 0) {
-        console.log('firebase loaded from cache');
-        fireQ.resolve();
-      }
+  function successCallback(stream) {
+    if (video.mozSrcObject !== undefined) {
+      video.mozSrcObject = stream;
+    } else {
+      video.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
+    }
+    localMediaStream = stream;
+  }
 
-      if (navigator.webkitGetUserMedia) {
-        MediaStreamTrack.getSources(gotSources);
-      }
-      else {
-        console.log('stream assumed');
-        $scope.sources.push({name : 'Camera Front', id:1});
-        userMediaQ.resolve();
-        //This browser does not support MediaStreamTrack.
-      }
+  function errorCallback(error) {
+    console.log('navigator.getUserMedia error: ', error);
+  }
 
-      all.then(function(data) {
-          $scope.pageLoading = false;
-        }, function() {
-          console.log('ERROR');
-          $timeout(function() {
-            $('.loading').removeClass('glyphicon-hdd');
-            $('.loading').addClass('glyphicon-warning-sign');
-            $('h3').html('Something went wrong :(<br />Please refresh your browser.');
-          });
+  $scope.keypress = function (e) {
+    if (e.keyCode !== 13) {
+      return;
+    }
+    $scope.recordGIF();
+  };
 
-        });
+  $scope.stopMedia = function () {
+    $scope.mediaON = false;
+    if (localMediaStream) {
+      localMediaStream.stop();
+    }
+    $scope.videoSource = '';
+  };
+
+  $scope.recordGIF = function () {
+    var pieClasses = ['ten', 'twentyfive', 'fifty', 'seventyfive', 'onehumdred'];
+    var context = document.getElementById('canvas').getContext('2d');
+    var encoder;
+    var frame;
+    var i;
+
+    $scope.text = $scope.comment;
+    $scope.comment = '';
+    $scope.camera.recordingOn();
+
+    function draw() {
+      frame = video;
+      context.drawImage(frame, 0, 0, 135, 100);
+      encoder.addFrame(context);
     }
 
-    function gotSources(sourceInfos) {
-          $scope.sources = [];
-          $scope.videoSources=0;
-          for (var i = 0; i !== sourceInfos.length; ++i) {
-            var sourceInfo = sourceInfos[i];
-            if (sourceInfo.kind === 'video') {
-              $scope.videoSources+=1;
-              var text = sourceInfo.label || 'camera ' + ( $scope.videoSources);
-              $scope.sources.push({name : text, id:sourceInfo.id});
-            }
+    for (i = 0; i < pieClasses; i++) {
+      $('pie').removeClass(pieClasses[i]);
+    }
+
+    encoder = new GIFEncoder();
+    encoder.setRepeat(0);
+    encoder.setDelay(150);
+    encoder.start();
+
+    if ($scope.camera.isRecording()) {
+      $('pie').addClass('ten');
+      $timeout(function () {
+        $('pie').addClass('twentyfive');
+        draw();
+      }, 250);
+      $timeout(function () {
+        $('pie').addClass('twentyfive');
+        draw();
+      }, 500);
+      $timeout(function () {
+        $('pie').addClass('fifty');
+        draw();
+      }, 750);
+      $timeout(function () {
+        $('pie').addClass('fifty');
+        draw();
+      }, 1000);
+      $timeout(function () {
+        $('pie').addClass('seventyfive');
+        draw();
+      }, 1250);
+      $timeout(function () {
+        $('pie').addClass('seventyfive');
+        draw();
+      }, 1500);
+      $timeout(function () {
+        $('pie').addClass('onehundred');
+        draw();
+      }, 1750);
+      $timeout(function () {
+        $('pie').addClass('onehundred');
+        draw();
+      }, 2000);
+      $timeout(function () {
+        var binaryGif;
+        var data;
+        var keys;
+
+        $scope.camera.recordingOff();
+
+        draw();
+        encoder.finish();
+        binaryGif = encoder.stream().getData();
+        data = 'data:image/gif;base64,' + encode64(binaryGif);
+        keys = $scope.gifs.$getIndex();
+
+        helperService.addGIF(encode64(binaryGif)).then(function (result) {
+          var id = result.data.id;
+          var imgsrc = 'https://imgur.com/' + id + '.gif';
+
+          if (keys.length > 3) {
+            helperService.deleteGIF($scope.gifs[keys[0]].deleteHash);
+            $scope.gifs.$remove(keys[0]);
           }
-          if ($scope.sources) {
-            console.log('stream loaded');
-            userMediaQ.resolve($scope.sources);
-          }
-          else {
-            userMediaQ.reject();
-          }
-
-        }
-
-    $scope.getUserMedia = function () {
-          $scope.mediaON = true;
-
-          if ( navigator.webkitGetUserMedia) {
-            $scope.constraints = {};
-            $scope.constraints.video = {
-              optional: [{
-                  sourceId: $scope.videoSource.id
-                }]
-              };
-          }
-          else {
-            //This browser does not support MediaStreamTrack.
-            $scope.constraints = {};
-            $scope.constraints = {
-              video: true
-            };
-          }
-          navigator.getUserMedia($scope.constraints, successCallback, errorCallback);
-        };
-
-    function successCallback(stream) {
-          if (video.mozSrcObject !== undefined) {
-            video.mozSrcObject = stream;
-          }
-          else {
-            video.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
-          }
-          localMediaStream = stream;
-        }
-
-    function errorCallback(error) {
-          console.log('navigator.getUserMedia error: ', error);
-        }
-      
-    $scope.keypress = function (e) {
-          if (e.keyCode !== 13) {
-            return;
-          }
-          $scope.recordGIF();
-        };
-
-    $scope.stopMedia = function () {
-          $scope.mediaON = false;
-          if (localMediaStream) {
-            localMediaStream.stop();
-          }
-          $scope.videoSource='';
-        };
-
-    $scope.recordGIF = function () {
-          $scope.camera.recordingOn();
-          $scope.text = $scope.comment;
-          $scope.comment = '';
-
-          var context1 = document.getElementById('canvas1').getContext('2d');
-          var context2 = document.getElementById('canvas2').getContext('2d');
-          var context3 = document.getElementById('canvas3').getContext('2d');
-          var context4 = document.getElementById('canvas4').getContext('2d');
-          var context5 = document.getElementById('canvas5').getContext('2d');
-
-          var pieClasses = ['ten', 'twentyfive', 'fifty', 'seventyfive', 'onehumdred'];
-
-          for (var i=0; i<pieClasses; i++) {
-            $('pie').removeClass(pieClasses[i]);
-          }
-          
-          var encoder = new GIFEncoder();
-
-          encoder.setRepeat(0);
-          encoder.setDelay(250);
-          encoder.start();
-
-          if ($scope.camera.isRecording()) {
-            $('pie').addClass('ten');
-            $timeout(function () {
-              $('pie').addClass('twentyfive');
-              var frame1 = video;
-              context1.drawImage(frame1, 0, 0, 135, 100);
-              encoder.addFrame(context1);
-            }, 500);
-            $timeout(function () {
-              $('pie').addClass('fifty');
-              var frame2 = video;
-              context2.drawImage(frame2, 0, 0, 135, 100);
-              encoder.addFrame(context2);
-            }, 1000);
-            $timeout(function () {
-              $('pie').addClass('seventyfive');
-              var frame3 = video;
-              context3.drawImage(frame3, 0, 0, 135, 100);
-              encoder.addFrame(context3);
-            }, 1500);
-            $timeout(function () {
-              $('pie').addClass('onehundred');
-              var frame4 = video;
-              context4.drawImage(frame4, 0, 0, 135, 100);
-              encoder.addFrame(context4);
-            }, 2000);
-            $timeout(function () {
-              $scope.camera.recordingOff();
-              var frame5 = video;
-              context5.drawImage(frame5, 0, 0, 135, 100);
-              encoder.addFrame(context5);
-              encoder.finish();
-
-              var binaryGif = encoder.stream().getData();
-              var data = 'data:image/gif;base64,' + encode64(binaryGif);
-              var keys = $scope.gifs.$getIndex();
-
-
-              
-              helperService.addGIF(keys, encode64(binaryGif)).then(function (result) {
-                  var id = result.data.id;
-                  var imgsrc = 'https://imgur.com/' + id + '.gif';
-                      
-                  if (keys.length > 30) {
-                    helperService.deleteGIF($scope.gifs[keys[0]].deleteHash);
-                    $scope.gifs.$remove(keys[0]);
-                  }
-
-                  $scope.gifs.$add({
-                    url: imgsrc,
-                    comment: $scope.text,
-                    date: new Date(),
-                    deleteHash : result.data.deletehash
-                  });
-                }, function (reason) {
-                  console.log(reason);
-                });
-            }, 2500);
-          }
-        };
-  }]);
+          $scope.gifs.$add({
+            url: imgsrc,
+            comment: $scope.text,
+            date: new Date(),
+            deleteHash : result.data.deletehash
+          });
+        }, function (reason) {
+          console.log(reason);
+        });
+      }, 2500);
+    }
+  };
+}]);
 
 app.factory('helperService', [ 'IMGUR_API_KEY', '$q',  function (IMGUR_API_KEY, $q) {
-    var recording = false;
+  var recording = false;
 
-    var isRecording = function () {
-        return recording;
-      };
+  var isRecording = function () {
+    return recording;
+  };
 
-    var recordingOn = function () {
-        recording = true;
-      };
+  var recordingOn = function () {
+    recording = true;
+  };
 
-    var recordingOff = function () {
-        recording = false;
-      };
+  var recordingOff = function () {
+    recording = false;
+  };
 
-
-    var deleteGIF = function(hash) {
-      if (hash) {
-        $.ajax({
-          url: 'https://api.imgur.com/3/image/'+hash,
-          type: 'DELETE',
-          success: function (result) {},
-          error: function (err) {
-            console.log(err);
-          },
-          beforeSend: function (xhr) {
-            xhr.setRequestHeader('Authorization', IMGUR_API_KEY);
-          }
-        });
-      }
-    };
-
-    var addGIF = function(keys, data) {
-      var deferredAdd = $q.defer();
+  var deleteGIF = function (hash) {
+    if (hash) {
       $.ajax({
-        url: 'https://api.imgur.com/3/upload',
-        type: 'POST',
-        datatype: 'base64',
-        data: data,
-        success: function (result) {
-          deferredAdd.resolve(result);
-        },
+        url: 'https://api.imgur.com/3/image/' + hash,
+        type: 'DELETE',
+        success: function (result) {},
         error: function (err) {
           console.log(err);
         },
@@ -306,18 +286,37 @@ app.factory('helperService', [ 'IMGUR_API_KEY', '$q',  function (IMGUR_API_KEY, 
           xhr.setRequestHeader('Authorization', IMGUR_API_KEY);
         }
       });
-      return deferredAdd.promise;
-    };
+    }
+  };
 
-    return {
-        isRecording: isRecording,
-        recordingOn: recordingOn,
-        recordingOff: recordingOff,
-        deleteGIF: deleteGIF,
-        addGIF: addGIF
+  var addGIF = function (data) {
+    var deferredAdd = $q.defer();
+    $.ajax({
+      url: 'https://api.imgur.com/3/upload',
+      type: 'POST',
+      datatype: 'base64',
+      data: data,
+      success: function (result) {
+        deferredAdd.resolve(result);
+      },
+      error: function (err) {
+        console.log(err);
+      },
+      beforeSend: function (xhr) {
+        xhr.setRequestHeader('Authorization', IMGUR_API_KEY);
+      }
+    });
+    return deferredAdd.promise;
+  };
 
-      };
-  }]);
+  return {
+    isRecording : isRecording,
+    recordingOn : recordingOn,
+    recordingOff : recordingOff,
+    deleteGIF : deleteGIF,
+    addGIF : addGIF
+  };
+}]);
 
 app.directive('footer', [function () {
   return {
@@ -326,7 +325,7 @@ app.directive('footer', [function () {
     template: "<div class='footer'><github></github><div class='pull-right'><a href='http://www.html5rocks.com/en/'><img src='assets/html5.png' height='21px'/></a>&nbsp;&nbsp;<a href='https://angularjs.org/'><img src='assets/angular.png' height='21px'/></a>&nbsp;&nbsp;<a href='https://www.firebase.com/'><img src='assets/firebase.jpeg' height='21px'/></a></div></div>"
   };
 }]);
-        
+
 app.directive('github', [function () {
   return {
     restrict: 'E',

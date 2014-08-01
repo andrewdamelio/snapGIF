@@ -1,13 +1,11 @@
 snapGIF
 =======
-<a href='http://snapgif.com'>DEMO</a>
-
-
-Edna Piranha's creation <a href='https://chat.meatspac.es/'>Meatspaces</a> is absolutely amazing.
-<br />
-snapGIF is inspried by Meatspaces and built with shareable rooms/channels. 
+<a href='http://snapgif.com'>Demo: snapGIF</a>
 <br /><br />
-Built from a combination of: 
+Chat with WebRTC created animated GIF's, supports the creation and sharing of rooms.
+<br /><br />
+Edna Piranha's creation <a href='https://chat.meatspac.es/'>Meatspaces</a> is absolutely amazing. snapGIF is inspried by Meatspaces and built from a combination of: 
+<br />
 <ul>
         <li>AngularJS</li>
         <li>HTML5</li>

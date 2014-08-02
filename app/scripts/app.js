@@ -24,8 +24,8 @@ app.config(function ($routeProvider) {
 });
 
 
-app.constant('FIREBASE_URL', 'https://cats.firebaseio.com/');
-app.constant('IMGUR_API_KEY', 'Client-ID a022759b7efead8');
+app.constant('FIREBASE_URL', 'YOUR_FIREBASE_URL');
+app.constant('IMGUR_API_KEY', 'Client-ID YOUR API KEY');
 
 app.controller('MainCtrl', ['$scope', '$location', function ($scope, $location) {
   $scope.joinRoom = function (room) {

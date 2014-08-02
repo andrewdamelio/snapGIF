@@ -104,15 +104,29 @@ ul {
 }
 
 .loading {
-  -mos-transition: 3s all ease;
-  transition: 3s all ease;
+  font-size: 65px;
+  -webkit-animation: changeColor 1.5s infinite alternate;
+  -mos-animation: changeColor 1s infinite linear;
+   animation: changeColor 1s infinite linear;
 }
 
-.loading:hover {
-  color: red;
+@keyframes changeColor {
+    from      { color: black; transform: rotate(0deg); }
+    to        { color: red; transform: rotate(360deg);  }
+}
+@-moz-keyframes changeColor {
+    from      { color: black; -moz-transform: rotate(0deg); }
+    to        { color: red; -moz-transform: rotate(360deg);  }
+}
+@-webkit-keyframes changeColor {
+    from      { color: black; -webkit-transform: rotate(0deg); }
+    to        { color: red; -webkit-transform: rotate(360deg);  }
 }
 
 
+.gifs li div img {
+  width: 135px;
+}
 
 .header a:hover {
     text-decoration: none;
@@ -166,14 +180,13 @@ canvas {
 }
 
 
-.video {
+.videoRecord {
   width: 320px;
   display: block;
   position: relative;
 }
 
 
-/* Responsive: Portrait tablets and up */
 
 @media screen and (min-width: 768px) {
   /* Remove the padding we set earlier */

@@ -23,8 +23,9 @@ app.config(function ($routeProvider) {
     });
 });
 
-app.constant('FIREBASE_URL', 'YOUR_FIREBASE_URL');
-app.constant('IMGUR_API_KEY', 'Client-ID YOUR API KEY');
+
+app.constant('FIREBASE_URL', 'https://cats.firebaseio.com/');
+app.constant('IMGUR_API_KEY', 'Client-ID a022759b7efead8');
 
 app.controller('MainCtrl', ['$scope', '$location', function ($scope, $location) {
   $scope.joinRoom = function (room) {
@@ -32,17 +33,23 @@ app.controller('MainCtrl', ['$scope', '$location', function ($scope, $location) 
   };
 }]);
 
-app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', 'FIREBASE_URL', '$routeParams', '$q', '$location', function ($scope, $timeout, helperService, $firebase, FIREBASE_URL, $routeParams, $q, $location) {
+app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$routeParams', '$q', '$location', function ($scope, $timeout, helperService, Firebase, $routeParams, $q, $location) {
+ 
   //Compatibility
   navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
   window.URL = window.URL || window.webkitURL || window.mozURL || window.msURL;
+
+  if (!$('html').hasClass('getusermedia')) {
+    $('.controls').html("<center>Sorry. Your browser doesn't support WebRTC - getUserMedia<br />No snaps for you :(<br /></center>");
+  }
+  //Compatibility
+
 
   var re = /^[a-zA-z0-9]{1,24}$/;
   var roomName = $routeParams.id;
   if (!re.test(roomName)) {
     $location.url('/');
   } else {
-    var ref = new Firebase(FIREBASE_URL + roomName);
     var localMediaStream;
     var userMediaQ = $q.defer();
     var fireQ = $q.defer();
@@ -53,7 +60,7 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
     $scope.camera = helperService;
     $scope.sources = [];
     $scope.constraints = {};
-    $scope.gifs = $firebase(ref);
+    $scope.gifs = Firebase.getFirebaseObj(roomName);
 
     $scope.gifs.$on('loaded', function () {
       if ($scope.gifs.$getIndex().length === 0) {
@@ -186,13 +193,14 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
 
     encoder = new GIFEncoder();
     encoder.setRepeat(0);
-    encoder.setDelay(150);
+    encoder.setDelay(125);
+    encoder.setQuality(10);
     encoder.start();
 
     if ($scope.camera.isRecording()) {
       $('pie').addClass('ten');
       $timeout(function () {
-        $('pie').addClass('twentyfive');
+        $('pie').addClass('ten');
         draw();
       }, 250);
       $timeout(function () {
@@ -200,7 +208,7 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
         draw();
       }, 500);
       $timeout(function () {
-        $('pie').addClass('fifty');
+        $('pie').addClass('twentyfive');
         draw();
       }, 750);
       $timeout(function () {
@@ -208,7 +216,7 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
         draw();
       }, 1000);
       $timeout(function () {
-        $('pie').addClass('seventyfive');
+        $('pie').addClass('fifty');
         draw();
       }, 1250);
       $timeout(function () {
@@ -216,13 +224,17 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
         draw();
       }, 1500);
       $timeout(function () {
-        $('pie').addClass('onehundred');
+        $('pie').addClass('seventyfive');
         draw();
       }, 1750);
       $timeout(function () {
         $('pie').addClass('onehundred');
         draw();
       }, 2000);
+      $timeout(function () {
+        $('pie').addClass('onehundred');
+        draw();
+      }, 2250);      
       $timeout(function () {
         var binaryGif;
         var data;
@@ -235,21 +247,23 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
         binaryGif = encoder.stream().getData();
         data = 'data:image/gif;base64,' + encode64(binaryGif);
         keys = $scope.gifs.$getIndex();
+        $scope.stopMedia();
 
         helperService.addGIF(encode64(binaryGif)).then(function (result) {
           var id = result.data.id;
           var imgsrc = 'https://imgur.com/' + id + '.gif';
 
-          if (keys.length > 3) {
-            helperService.deleteGIF($scope.gifs[keys[0]].deleteHash);
-            $scope.gifs.$remove(keys[0]);
-          }
           $scope.gifs.$add({
             url: imgsrc,
             comment: $scope.text,
             date: new Date(),
             deleteHash : result.data.deletehash
           });
+
+          if (keys.length >= 30) {
+            helperService.deleteGIF($scope.gifs[keys[0]].deleteHash);
+            $scope.gifs.$remove(keys[0]);
+          }
         }, function (reason) {
           console.log(reason);
         });
@@ -257,6 +271,22 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', '$firebase', '
     }
   };
 }]);
+
+
+app.factory('Firebase', ['$firebase', 'FIREBASE_URL', function ($firebase, FIREBASE_URL) {
+  var ref;
+
+  var getFirebaseObj = function (ref) {
+    ref = new Firebase(FIREBASE_URL + ref);
+    return $firebase(ref);
+  }
+
+  return {
+    getFirebaseObj : getFirebaseObj
+  }
+  
+}])
+
 
 app.factory('helperService', [ 'IMGUR_API_KEY', '$q',  function (IMGUR_API_KEY, $q) {
   var recording = false;

@@ -1,9 +1,9 @@
 <div class='header'>
     <a ng-href='#' ng-click='stopMedia()'><h1>snap<i class='glyphicon glyphicon-camera title'></i>GIF</h1></a>
 </div>
-<div ng-show='pageLoading'>
+<div ng-if='pageLoading'>
     <center>
-        <i style='font-size: 100px' class='loading glyphicon glyphicon-hdd'></i>
+        <i class='loading glyphicon glyphicon-refresh'></i>
         <h3 >Loading... Please wait</h3>
     </center>
 </div>
@@ -28,14 +28,14 @@
     </section>
 
     <section class='controls'>
-        <div class='video'>
+        <div class='videoRecord'>
             <video ng-if='mediaON' id="video" width="320" height="200" autoplay></video>
                 <div class='pie'>
                     <pie ng-if='camera.isRecording()'></pie>
                 </div>
         </div><br/>
         
-        <input ng-show='mediaON' type='text' ng-keydown="keypress($event)" ng-disabled="camera.isRecording()" ng-model='comment' /><br /> <br />
+    <input ng-show='mediaON' type='text' ng-keydown="keypress($event)" ng-disabled="camera.isRecording()" maxlength="250" ng-model='comment' /><br /> <br />
         
         
         <select  ng-show='!mediaON'  
@@ -51,7 +51,7 @@
             <span class="glyphicon glyphicon-camera"></span>
         </button>
         
-        <button class='btn btn-danger camera' ng-if='mediaON' ng-click='stopMedia()'>OFF</button><br /><br />
+        <button class='btn btn-danger camera' ng-if='mediaON' ng-disabled="camera.isRecording()" ng-click='stopMedia()'>OFF</button><br /><br />
     
 
     </section>

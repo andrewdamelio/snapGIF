@@ -106,8 +106,8 @@ ul {
 .loading {
   font-size: 65px;
   -webkit-animation: changeColor 1.5s infinite alternate;
-  -mos-animation: changeColor 1s infinite linear;
-   animation: changeColor 1s infinite linear;
+  -moz-animation: changeColor 1s infinite alternate;
+   animation: changeColor 1s infinite alternate;
 }
 
 @keyframes changeColor {
@@ -157,9 +157,6 @@ ul {
   font-size: 10px;
 }
 
-.wait {
-  cursor: wait;
-}
 
 .controls {
   margin: auto;
@@ -175,8 +172,10 @@ ul {
   height: 50px;
 }
 
-canvas {
+#canvas {
   display: none;
+  width: 135px;
+  height: 100px;
 }
 
 

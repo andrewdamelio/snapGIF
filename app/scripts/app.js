@@ -1,7 +1,6 @@
 'use strict';
 
 var app = angular.module('app', [
-    'ngCookies',
     'ngResource',
     'ngRoute',
     'firebase'
@@ -40,10 +39,8 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$
   window.URL = window.URL || window.webkitURL || window.mozURL || window.msURL;
 
   if (!$('html').hasClass('getusermedia')) {
-    $('.controls').html("<center>Sorry. Your browser doesn't support WebRTC - getUserMedia<br />No snaps for you :(<br /></center>");
+    $('.controls').html('<center>Sorry. Your browser doesn\'t support WebRTC - getUserMedia<br />No snaps for you :(<br /></center>');
   }
-  //Compatibility
-
 
   var re = /^[a-zA-z0-9]{1,24}$/;
   var roomName = $routeParams.id;
@@ -54,6 +51,7 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$
     var userMediaQ = $q.defer();
     var fireQ = $q.defer();
     var all = $q.all([fireQ.promise, userMediaQ.promise]);
+    var snd = new Audio("assets/drop.wav");
 
     $scope.pageLoading = true;
 
@@ -70,7 +68,16 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$
           date: new Date()
         });
       }
+      
       console.log('firebase loaded');
+      
+      $scope.$watch('gifs.$getIndex().length', function (newValue, oldValue) {
+        if (newValue !== oldValue) { 
+          snd.play();
+          snd.currentTime = 0;
+        }
+      })
+
       fireQ.resolve();
     });
 
@@ -148,7 +155,9 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$
     } else {
       video.src = (window.URL && window.URL.createObjectURL(stream)) || stream;
     }
+    video.autoplay = true;
     localMediaStream = stream;
+
   }
 
   function errorCallback(error) {
@@ -171,105 +180,38 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$
   };
 
   $scope.recordGIF = function () {
-    var pieClasses = ['ten', 'twentyfive', 'fifty', 'seventyfive', 'onehumdred'];
-    var context = document.getElementById('canvas').getContext('2d');
-    var encoder;
-    var frame;
-    var i;
-
     $scope.text = $scope.comment;
     $scope.comment = '';
     $scope.camera.recordingOn();
+    var keys = $scope.gifs.$getIndex();
 
-    function draw() {
-      frame = video;
-      context.drawImage(frame, 0, 0, 135, 100);
-      encoder.addFrame(context);
-    }
+    helperService.createGIF().then(function (binaryGif) {
+      $scope.camera.recordingOff();
+      $scope.stopMedia();
 
-    for (i = 0; i < pieClasses; i++) {
-      $('pie').removeClass(pieClasses[i]);
-    }
+      helperService.addGIF(encode64(binaryGif)).then(function (result) {
+        var id = result.data.id;
+        var imgsrc = 'https://imgur.com/' + id + '.gif';
 
-    encoder = new GIFEncoder();
-    encoder.setRepeat(0);
-    encoder.setDelay(125);
-    encoder.setQuality(10);
-    encoder.start();
+        $scope.gifs.$add({
+          url: imgsrc,
+          comment: $scope.text,
+          date: new Date(),
+          deleteHash : result.data.deletehash
+        });
 
-    if ($scope.camera.isRecording()) {
-      $('pie').addClass('ten');
-      $timeout(function () {
-        $('pie').addClass('ten');
-        draw();
-      }, 250);
-      $timeout(function () {
-        $('pie').addClass('twentyfive');
-        draw();
-      }, 500);
-      $timeout(function () {
-        $('pie').addClass('twentyfive');
-        draw();
-      }, 750);
-      $timeout(function () {
-        $('pie').addClass('fifty');
-        draw();
-      }, 1000);
-      $timeout(function () {
-        $('pie').addClass('fifty');
-        draw();
-      }, 1250);
-      $timeout(function () {
-        $('pie').addClass('seventyfive');
-        draw();
-      }, 1500);
-      $timeout(function () {
-        $('pie').addClass('seventyfive');
-        draw();
-      }, 1750);
-      $timeout(function () {
-        $('pie').addClass('onehundred');
-        draw();
-      }, 2000);
-      $timeout(function () {
-        $('pie').addClass('onehundred');
-        draw();
-      }, 2250);      
-      $timeout(function () {
-        var binaryGif;
-        var data;
-        var keys;
-
-        $scope.camera.recordingOff();
-
-        draw();
-        encoder.finish();
-        binaryGif = encoder.stream().getData();
-        data = 'data:image/gif;base64,' + encode64(binaryGif);
-        keys = $scope.gifs.$getIndex();
-        $scope.stopMedia();
-
-        helperService.addGIF(encode64(binaryGif)).then(function (result) {
-          var id = result.data.id;
-          var imgsrc = 'https://imgur.com/' + id + '.gif';
-
-          $scope.gifs.$add({
-            url: imgsrc,
-            comment: $scope.text,
-            date: new Date(),
-            deleteHash : result.data.deletehash
-          });
-
-          if (keys.length >= 30) {
-            helperService.deleteGIF($scope.gifs[keys[0]].deleteHash);
-            $scope.gifs.$remove(keys[0]);
-          }
-        }, function (reason) {
+        if (keys.length >= 30) {
+          helperService.deleteGIF($scope.gifs[keys[0]].deleteHash);
+          $scope.gifs.$remove(keys[0]);
+        }
+      }, function (reason) {
           console.log(reason);
         });
-      }, 2500);
-    }
+    }, function (reason) {
+        console.log(reason);
+      });
   };
+  
 }]);
 
 
@@ -279,16 +221,15 @@ app.factory('Firebase', ['$firebase', 'FIREBASE_URL', function ($firebase, FIREB
   var getFirebaseObj = function (ref) {
     ref = new Firebase(FIREBASE_URL + ref);
     return $firebase(ref);
-  }
+  };
 
   return {
     getFirebaseObj : getFirebaseObj
-  }
-  
-}])
+  };
+}]);
 
 
-app.factory('helperService', [ 'IMGUR_API_KEY', '$q',  function (IMGUR_API_KEY, $q) {
+app.factory('helperService', [ 'IMGUR_API_KEY', '$q', '$timeout',  function (IMGUR_API_KEY, $q, $timeout) {
   var recording = false;
 
   var isRecording = function () {
@@ -339,12 +280,65 @@ app.factory('helperService', [ 'IMGUR_API_KEY', '$q',  function (IMGUR_API_KEY, 
     return deferredAdd.promise;
   };
 
+
+  var createGIF = function() {
+    var deferredCreate = $q.defer();
+    var pieClasses = ['ten', 'ten', 'twentyfive', 'twentyfive', 'fifty', 'fifty', 'seventyfive', 'seventyfive', 'onehundred', 'onehundred'];
+    var context = document.getElementById('canvas').getContext('2d');
+    var encoder;
+    var frame;
+    var i;
+    var timer = 0;
+  
+    for (i = 0; i < pieClasses; i++) {
+      $('pie').removeClass(pieClasses[i]);
+    }
+
+    var gif = new GIF({
+      workers: 2,
+      quality: 10,
+      width:135,
+      height:100,
+      workerScript: "scripts/gif.worker.js"
+    });
+
+    function draw() {
+      frame = video;
+      context.drawImage(frame, 0, 0, 135, 100);
+      gif.addFrame(context,{copy: true, delay : 125});
+    }
+
+    for (i = 0; i < 10; i++) {
+      (function (i, timer) {
+        $timeout(function () {
+          $('pie').addClass(pieClasses[i]);
+          draw();
+        }, timer);
+      })(i, timer);
+      timer = timer + 250;
+    }
+
+    $timeout(function () {
+      var binaryGif;
+      var data;
+
+      draw();
+      gif.on('finished', function(blob,data) {
+        deferredCreate.resolve(buildDataURL(data));
+      });
+
+      gif.render();
+    }, 2500);
+    return deferredCreate.promise;
+  };
+
   return {
     isRecording : isRecording,
     recordingOn : recordingOn,
     recordingOff : recordingOff,
     deleteGIF : deleteGIF,
-    addGIF : addGIF
+    addGIF : addGIF,
+    createGIF : createGIF
   };
 }]);
 
@@ -352,7 +346,7 @@ app.directive('footer', [function () {
   return {
     restrict: 'E',
     replace:  true,
-    template: "<div class='footer'><github></github><div class='pull-right'><a href='http://www.html5rocks.com/en/'><img src='assets/html5.png' height='21px'/></a>&nbsp;&nbsp;<a href='https://angularjs.org/'><img src='assets/angular.png' height='21px'/></a>&nbsp;&nbsp;<a href='https://www.firebase.com/'><img src='assets/firebase.jpeg' height='21px'/></a></div></div>"
+    template: "<div class='footer'><github></github><div class='pull-right'><a href='http://www.html5rocks.com/en/'><img src='assets/html5.png' height='21px'/></a>&nbsp;&nbsp;<a href='https://angularjs.org/'><img src='assets/angular.png' height='21px'/></a>&nbsp;&nbsp;<a href='https://www.firebase.com/'><img src='assets/firebase.jpeg' height='21px'/></a><br /><font size='1px'><a class='pull-right' href='terms.html'>terms of use</a></font></div></div>"
   };
 }]);
 
@@ -360,6 +354,6 @@ app.directive('github', [function () {
   return {
     restrict: 'E',
     replace: true,
-    template: "<a href='https://github.com/andrewdamelio/snapgif'><svg class='github' version='1.1' id='Layer_2' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' width='15.835px' height='20.164px' viewBox='242.137 3.418 15.835 18.164' enable-background='new 242.137 3.418 15.835 18.164' xml:space='preserve'>                <path fill='#333' stroke='#333' stroke-width='1' stroke-miterlimit='10' d='M256.255,3.943c0,0-0.904-0.292-2.967,1.107c-0.864-0.239-1.787-0.359-2.704-0.363c-0.919,0.004-1.843,0.124-2.705,0.363c-2.063-1.398-2.97-1.107-2.97-1.107c-0.587,1.486-0.217,2.585-0.106,2.858c-0.691,0.755-1.112,1.719-1.112,2.898c0,4.14,2.522,5.066,4.92,5.339c-0.309,0.271-0.587,0.747-0.686,1.445c-0.616,0.276-2.18,0.752-3.144-0.897c0,0-0.57-1.038-1.655-1.114c0,0-1.055-0.013-0.074,0.657c0,0,0.708,0.332,1.199,1.58c0,0,0.634,2.101,3.638,1.448c0.006,0.901,0.016,1.581,0.016,1.838c0,0.281,0-0.266-0.021,0.541c0.193,0.675,1.512,0.531,2.698,0.531c1.187,0,2.291,0.167,2.65-0.551c0.14-0.686,0.029-0.238,0.029-0.521c0-0.355,0.011-1.52,0.011-2.964c0-1.008-0.345-1.667-0.733-2c2.406-0.268,4.933-1.181,4.933-5.331c0-1.179-0.419-2.143-1.109-2.898C256.476,6.528,256.847,5.429,256.255,3.943z'></path></svg></a"
+    template: "<a href='https://github.com/andrewdamelio/snapgif'><svg class='github' version='1.1' id='Layer_2' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' x='0px' y='0px' width='15.835px' height='20.164px' viewBox='242.137 3.418 15.835 18.164' enable-background='new 242.137 3.418 15.835 18.164' xml:space='preserve'><path fill='#333' stroke='#333' stroke-width='1' stroke-miterlimit='10' d='M256.255,3.943c0,0-0.904-0.292-2.967,1.107c-0.864-0.239-1.787-0.359-2.704-0.363c-0.919,0.004-1.843,0.124-2.705,0.363c-2.063-1.398-2.97-1.107-2.97-1.107c-0.587,1.486-0.217,2.585-0.106,2.858c-0.691,0.755-1.112,1.719-1.112,2.898c0,4.14,2.522,5.066,4.92,5.339c-0.309,0.271-0.587,0.747-0.686,1.445c-0.616,0.276-2.18,0.752-3.144-0.897c0,0-0.57-1.038-1.655-1.114c0,0-1.055-0.013-0.074,0.657c0,0,0.708,0.332,1.199,1.58c0,0,0.634,2.101,3.638,1.448c0.006,0.901,0.016,1.581,0.016,1.838c0,0.281,0-0.266-0.021,0.541c0.193,0.675,1.512,0.531,2.698,0.531c1.187,0,2.291,0.167,2.65-0.551c0.14-0.686,0.029-0.238,0.029-0.521c0-0.355,0.011-1.52,0.011-2.964c0-1.008-0.345-1.667-0.733-2c2.406-0.268,4.933-1.181,4.933-5.331c0-1.179-0.419-2.143-1.109-2.898C256.476,6.528,256.847,5.429,256.255,3.943z'></path></svg></a"
   };
 }]);

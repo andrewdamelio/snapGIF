@@ -21,7 +21,7 @@
     <![endif]-->
 
     <!-- Add your site or application content here -->
-    <div class="container" ng-view=""  ng-class='{wait : pageLoading}'></div>
+    <div class="container" ng-view=""></div>
 
     <!-- Google Analytics: change UA-XXXXX-X to be your site's ID -->
      <script>
@@ -45,18 +45,15 @@
     <script src="bower_components/jquery/dist/jquery.js"></script>
     <script src="bower_components/angular/angular.js"></script>
     <script src="bower_components/angular-resource/angular-resource.js"></script>
-    <script src="bower_components/angular-cookies/angular-cookies.js"></script>
     <script src="bower_components/angular-route/angular-route.js"></script>
+    <script src="bower_components/firebase/firebase.js"></script>
+    <script src="bower_components/angularfire/dist/angularfire.min.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
-        <script src="scripts/gif/LZWEncoder.js"></script>
-        <script src="scripts/gif/NeuQuant.js"></script>
-        <script src="scripts/gif/GIFEncoder.js"></script>
-        <script src="scripts/gif/b64.js"></script>
-        <script src="//cdn.firebase.com/v0/firebase.js"></script>
-        <script src="//cdn.firebase.com/libs/angularfire/0.5.0/angularfire.js"></script>
+        <script src="scripts/gif.js"></script>
+        <script src="scripts/gif.worker.js"></script>
         <!-- build:js({.tmp,app}) scripts/scripts.js -->
-    
+        <script src="scripts/b64.js"></script>
         <script src="scripts/app.js"></script>
         <!-- endbuild -->
 </body>

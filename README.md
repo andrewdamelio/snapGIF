@@ -4,7 +4,7 @@ snapGIF
 <br /><br />
 Chat with WebRTC created animated GIF's, supports the creation and sharing of rooms.
 <br /><br />
-@ednapiranha creation <a href='https://chat.meatspac.es/'>Meatspaces</a> is absolutely amazing. snapGIF is inspried by Meatspaces and built from a combination of: 
+<a href='https://twitter.com/ednapiranha'>@ednapiranha</a> creation <a href='https://chat.meatspac.es/'>Meatspaces</a> is absolutely amazing. snapGIF is inspried by Meatspaces and built from a combination of: 
 <br />
 <ul>
         <li>AngularJS</li>

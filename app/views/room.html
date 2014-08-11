@@ -35,7 +35,9 @@
                 </div>
         </div><br/>
         
-    <input ng-show='mediaON' type='text' ng-keydown="keypress($event)" ng-disabled="camera.isRecording()" maxlength="250" ng-model='comment' /><br /> <br />
+    <input ng-show='mediaON' type='text' ng-keydown="keypress($event)" ng-disabled="camera.isRecording()" maxlength="250" ng-model='comment' placeholder="Send a public message" /> 
+    <span ng-show='mediaON'>{{250 - comment.length}}</span>
+    <br /> <br />
         
         
         <select  ng-show='!mediaON'  

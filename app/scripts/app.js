@@ -22,9 +22,27 @@ app.config(function ($routeProvider) {
     });
 });
 
+app.filter('array', function() {
+  return function(items) {
+    var filtered = [];
+    angular.forEach(items, function(item) {
+      if (item.date) {
+        filtered.push(item);
+      }
+    });
+    return filtered;
+  };
+});
 
-app.constant('FIREBASE_URL', 'YOUR_FIREBASE_URL');
-app.constant('IMGUR_API_KEY', 'Client-ID YOUR API KEY');
+app.filter('reverse', function() {
+  return function(items) {
+    return items.slice().reverse();
+  };
+});
+
+
+app.constant('FIREBASE_URL', 'https://cats.firebaseio.com/');
+app.constant('IMGUR_API_KEY', 'Client-ID a022759b7efead8');
 
 app.controller('MainCtrl', ['$scope', '$location', function ($scope, $location) {
   $scope.joinRoom = function (room) {
@@ -51,20 +69,21 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$
     var userMediaQ = $q.defer();
     var fireQ = $q.defer();
     var all = $q.all([fireQ.promise, userMediaQ.promise]);
-    var snd = new Audio("assets/drop.wav");
+    var snd = new Audio('assets/drop.wav');
 
+    $scope.audioFlag = false;
     $scope.pageLoading = true;
-
     $scope.camera = helperService;
     $scope.sources = [];
     $scope.constraints = {};
     $scope.gifs = Firebase.getFirebaseObj(roomName);
 
+
     $scope.gifs.$on('loaded', function () {
       if ($scope.gifs.$getIndex().length === 0) {
         $scope.gifs.$add({
           url: 'https://imgur.com/h8bGicy.gif',
-          comment: 'Welcome to ' + roomName + ', I exist.',
+          comment: 'Welcome to /' + roomName + '.',
           date: new Date()
         });
       }
@@ -72,11 +91,23 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$
       console.log('firebase loaded');
       
       $scope.$watch('gifs.$getIndex().length', function (newValue, oldValue) {
-        if (newValue !== oldValue) { 
-          snd.play();
-          snd.currentTime = 0;
+        if (newValue !== oldValue) {
+          if($scope.gifs.$getIndex().length>=30) {
+            if (!$scope.audioFlag) {
+              snd.play();
+              snd.currentTime = 0;
+              $scope.audioFlag = true;
+            }
+            else {
+              $scope.audioFlag = false;
+            }
+          }
+          else {
+            snd.play();
+            snd.currentTime = 0;
+          }
         }
-      })
+      });
 
       fireQ.resolve();
     });
@@ -180,36 +211,46 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$
   };
 
   $scope.recordGIF = function () {
-    $scope.text = $scope.comment;
-    $scope.comment = '';
-    $scope.camera.recordingOn();
-    var keys = $scope.gifs.$getIndex();
+    if (localMediaStream) {
+      $scope.text = $scope.comment;
+      $scope.comment = '';
+      $scope.camera.recordingOn();
+      var keys = $scope.gifs.$getIndex();
 
-    helperService.createGIF().then(function (binaryGif) {
-      $scope.camera.recordingOff();
-      $scope.stopMedia();
+      helperService.createGIF().then(function (binaryGif) {
+        $scope.camera.recordingOff();
+        $scope.stopMedia();
+        $scope.audioSiwtch = true;
 
-      helperService.addGIF(encode64(binaryGif)).then(function (result) {
-        var id = result.data.id;
-        var imgsrc = 'https://imgur.com/' + id + '.gif';
+        helperService.addGIF(encode64(binaryGif)).then(function (result) {
+          var id = result.data.id;
+          var imgsrc = 'https://imgur.com/' + id + '.gif';
 
-        $scope.gifs.$add({
-          url: imgsrc,
-          comment: $scope.text,
-          date: new Date(),
-          deleteHash : result.data.deletehash
-        });
+          $scope.gifs.$add({
+            url: imgsrc,
+            comment: $scope.text,
+            date: new Date(),
+            deleteHash : result.data.deletehash
+          });
 
-        if (keys.length >= 30) {
-          helperService.deleteGIF($scope.gifs[keys[0]].deleteHash);
-          $scope.gifs.$remove(keys[0]);
-        }
+
+          $timeout(function(){
+            if (keys.length >= 30) {
+              helperService.deleteGIF($scope.gifs[keys[0]].deleteHash);
+              $scope.gifs.$remove(keys[0]);
+            }
+          }, 2000);
+          
+        }, function (reason) {
+            console.log(reason);
+          });
       }, function (reason) {
           console.log(reason);
         });
-    }, function (reason) {
-        console.log(reason);
-      });
+    }
+    else {
+      alert('Camera stream not detected. \nPlease refresh your browser and allow use of your camera.');
+    }
   };
   
 }]);
@@ -229,7 +270,7 @@ app.factory('Firebase', ['$firebase', 'FIREBASE_URL', function ($firebase, FIREB
 }]);
 
 
-app.factory('helperService', [ 'IMGUR_API_KEY', '$q', '$timeout',  function (IMGUR_API_KEY, $q, $timeout) {
+app.factory('helperService', [ 'IMGUR_API_KEY', '$q', '$timeout', '$http',  function (IMGUR_API_KEY, $q, $timeout, $http) {
   var recording = false;
 
   var isRecording = function () {
@@ -246,37 +287,37 @@ app.factory('helperService', [ 'IMGUR_API_KEY', '$q', '$timeout',  function (IMG
 
   var deleteGIF = function (hash) {
     if (hash) {
-      $.ajax({
-        url: 'https://api.imgur.com/3/image/' + hash,
-        type: 'DELETE',
-        success: function (result) {},
-        error: function (err) {
-          console.log(err);
-        },
-        beforeSend: function (xhr) {
-          xhr.setRequestHeader('Authorization', IMGUR_API_KEY);
+      $http({
+        url : 'https://api.imgur.com/3/image/' + hash,
+        method : 'DELETE',
+        headers:  {
+          Authorization: IMGUR_API_KEY
         }
-      });
+      })
+      .success(function() {console.log(hash + ' DELETED');})
+      .error(function(reason) { console.log(reason);});
     }
   };
 
   var addGIF = function (data) {
     var deferredAdd = $q.defer();
-    $.ajax({
-      url: 'https://api.imgur.com/3/upload',
-      type: 'POST',
-      datatype: 'base64',
-      data: data,
-      success: function (result) {
-        deferredAdd.resolve(result);
-      },
-      error: function (err) {
-        console.log(err);
-      },
-      beforeSend: function (xhr) {
-        xhr.setRequestHeader('Authorization', IMGUR_API_KEY);
+    $http({
+      url : 'https://api.imgur.com/3/upload',
+      method : 'POST',
+      data : data,
+      headers:  {
+        Authorization: IMGUR_API_KEY
       }
-    });
+    }).success(deferredAdd.resolve)
+    .error(function(reason) {
+        if (reason.status === 429) {
+          alert('Sorry - you exceeded your upload limit. Please note a single IP address is able to upload 50 images an hour and 200 images a day.');
+        }
+        else if (reason.status === 0) {
+          alert('Internet connection disconnected. \nPlease check your internet connection and refresh the page.');
+        }
+        deferredAdd.reject(reason);
+      });
     return deferredAdd.promise;
   };
 
@@ -286,7 +327,6 @@ app.factory('helperService', [ 'IMGUR_API_KEY', '$q', '$timeout',  function (IMG
     var pieClasses = ['ten', 'ten', 'twentyfive', 'twentyfive', 'fifty', 'fifty', 'seventyfive', 'seventyfive', 'onehundred', 'onehundred'];
     var context = document.getElementById('canvas').getContext('2d');
     var encoder;
-    var frame;
     var i;
     var timer = 0;
   
@@ -299,12 +339,11 @@ app.factory('helperService', [ 'IMGUR_API_KEY', '$q', '$timeout',  function (IMG
       quality: 10,
       width:135,
       height:100,
-      workerScript: "scripts/gif.worker.js"
+      workerScript: 'scripts/gif.worker.js'
     });
 
     function draw() {
-      frame = video;
-      context.drawImage(frame, 0, 0, 135, 100);
+      context.drawImage(video, 0, 0, 135, 100);
       gif.addFrame(context,{copy: true, delay : 125});
     }
 
@@ -321,7 +360,6 @@ app.factory('helperService', [ 'IMGUR_API_KEY', '$q', '$timeout',  function (IMG
     $timeout(function () {
       var binaryGif;
       var data;
-
       draw();
       gif.on('finished', function(blob,data) {
         deferredCreate.resolve(buildDataURL(data));

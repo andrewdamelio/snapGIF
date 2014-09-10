@@ -126,6 +126,7 @@ ul {
 
 .gifs li div img {
   width: 135px;
+  padding:2px 10px 2px 10px;
 }
 
 .header a:hover {
@@ -142,10 +143,10 @@ ul {
   margin-bottom: 25px;
 }
 
-.row {
-  padding: 2px;
+.row li {
   border-bottom: 1px solid grey;
 }
+
 
 .comments {
   font-weight: bold;

@@ -6,7 +6,6 @@ var app = angular.module('app', [
     'firebase'
   ]);
 
-
 app.config(function ($routeProvider) {
   $routeProvider
     .when('/', {
@@ -22,25 +21,6 @@ app.config(function ($routeProvider) {
     });
 });
 
-app.filter('array', function() {
-  return function(items) {
-    var filtered = [];
-    angular.forEach(items, function(item) {
-      if (item.date) {
-        filtered.push(item);
-      }
-    });
-    return filtered;
-  };
-});
-
-app.filter('reverse', function() {
-  return function(items) {
-    return items.slice().reverse();
-  };
-});
-
-
 app.constant('FIREBASE_URL', 'https://cats.firebaseio.com/');
 app.constant('IMGUR_API_KEY', 'Client-ID a022759b7efead8');
 
@@ -51,7 +31,7 @@ app.controller('MainCtrl', ['$scope', '$location', function ($scope, $location) 
 }]);
 
 app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$routeParams', '$q', '$location', function ($scope, $timeout, helperService, Firebase, $routeParams, $q, $location) {
- 
+
   //Compatibility
   navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
   window.URL = window.URL || window.webkitURL || window.mozURL || window.msURL;
@@ -77,7 +57,53 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$
     $scope.sources = [];
     $scope.constraints = {};
     $scope.gifs = Firebase.getFirebaseObj(roomName);
+    $scope.counter = 0;
 
+    // main visibility API function 
+    // check if current tab is active or not
+    $scope.vis = (function () {
+      var stateKey, eventKey, keys = {
+        hidden: 'visibilitychange',
+        webkitHidden: 'webkitvisibilitychange',
+        mozHidden: 'mozvisibilitychange',
+        msHidden: 'msvisibilitychange'
+      };
+      for (stateKey in keys) {
+        if (stateKey in document) {
+          eventKey = keys[stateKey];
+          break;
+        }
+      }
+      return function (c) {
+        if (c) {
+          document.addEventListener(eventKey, c);
+        }
+        return !document[stateKey];
+      };
+    }());
+
+
+    $scope.changeFavicon = function (src) {
+      var link = document.createElement('link');
+      var oldLink = document.getElementById('dynamic-favicon');
+      link.id = 'dynamic-favicon';
+      link.rel = 'shortcut icon';
+      link.href = src;
+      if (oldLink) {
+        document.getElementsByTagName('head')[0].removeChild(oldLink);
+      }
+      document.getElementsByTagName('head')[0].appendChild(link);
+    };
+
+    $scope.vis(function () {
+      if ($scope.vis()) {
+        // before the tab gains focus again
+        $timeout(function () {
+          $scope.counter = 0;
+          $scope.changeFavicon('http://snapgif.com/favicon.ico');
+        }, 300);
+      }
+    });
 
     $scope.gifs.$on('loaded', function () {
       if ($scope.gifs.$getIndex().length === 0) {
@@ -87,28 +113,7 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$
           date: new Date()
         });
       }
-      
       console.log('firebase loaded');
-      
-      $scope.$watch('gifs.$getIndex().length', function (newValue, oldValue) {
-        if (newValue !== oldValue) {
-          if($scope.gifs.$getIndex().length>=30) {
-            if (!$scope.audioFlag) {
-              snd.play();
-              snd.currentTime = 0;
-              $scope.audioFlag = true;
-            }
-            else {
-              $scope.audioFlag = false;
-            }
-          }
-          else {
-            snd.play();
-            snd.currentTime = 0;
-          }
-        }
-      });
-
       fireQ.resolve();
     });
 
@@ -116,6 +121,36 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$
       console.log('firebase loaded from cache');
       fireQ.resolve();
     }
+
+    $scope.$watch('gifs.$getIndex().length', function (newValue, oldValue) {
+      function changeFavicon() {
+        // check if current tab is active or not
+        if (!$scope.vis() && !$scope.pageLoading) {
+          $scope.counter += 1;
+          if ($scope.counter >= 4) {
+            $scope.counter = 4;
+          }
+          var link = '/assets/favicon-' + $scope.counter + '.ico';
+          $scope.changeFavicon('http://snapgif.com' + link);
+        }
+      }
+      if (newValue !== oldValue) {
+        if ($scope.gifs.$getIndex().length >= 30) {
+          if (!$scope.audioFlag) {
+            changeFavicon();
+            $scope.audioFlag = true;
+            snd.play();
+            snd.currentTime = 0;
+          } else {
+            $scope.audioFlag = false;
+          }
+        } else {
+          changeFavicon();
+          snd.play();
+          snd.currentTime = 0;
+        }
+      }
+    });
 
     if (navigator.webkitGetUserMedia) {
       MediaStreamTrack.getSources(gotSources);
@@ -234,27 +269,23 @@ app.controller('AppCtrl', ['$scope', '$timeout', 'helperService', 'Firebase', '$
           });
 
 
-          $timeout(function(){
+          $timeout(function () {
             if (keys.length >= 30) {
               helperService.deleteGIF($scope.gifs[keys[0]].deleteHash);
               $scope.gifs.$remove(keys[0]);
             }
           }, 2000);
-          
         }, function (reason) {
-            console.log(reason);
-          });
-      }, function (reason) {
           console.log(reason);
         });
-    }
-    else {
+      }, function (reason) {
+        console.log(reason);
+      });
+    } else {
       alert('Camera stream not detected. \nPlease refresh your browser and allow use of your camera.');
     }
   };
-  
 }]);
-
 
 app.factory('Firebase', ['$firebase', 'FIREBASE_URL', function ($firebase, FIREBASE_URL) {
   var ref;
@@ -294,8 +325,8 @@ app.factory('helperService', [ 'IMGUR_API_KEY', '$q', '$timeout', '$http',  func
           Authorization: IMGUR_API_KEY
         }
       })
-      .success(function() {console.log(hash + ' DELETED');})
-      .error(function(reason) { console.log(reason);});
+        .success(function () {console.log(hash + ' DELETED'); })
+        .error(function (reason) { console.log(reason); });
     }
   };
 
@@ -309,11 +340,10 @@ app.factory('helperService', [ 'IMGUR_API_KEY', '$q', '$timeout', '$http',  func
         Authorization: IMGUR_API_KEY
       }
     }).success(deferredAdd.resolve)
-    .error(function(reason) {
+      .error(function (reason) {
         if (reason.status === 429) {
           alert('Sorry - you exceeded your upload limit. Please note a single IP address is able to upload 50 images an hour and 200 images a day.');
-        }
-        else if (reason.status === 0) {
+        } else if (reason.status === 0) {
           alert('Internet connection disconnected. \nPlease check your internet connection and refresh the page.');
         }
         deferredAdd.reject(reason);
@@ -321,15 +351,13 @@ app.factory('helperService', [ 'IMGUR_API_KEY', '$q', '$timeout', '$http',  func
     return deferredAdd.promise;
   };
 
-
-  var createGIF = function() {
+  var createGIF = function () {
     var deferredCreate = $q.defer();
     var pieClasses = ['ten', 'ten', 'twentyfive', 'twentyfive', 'fifty', 'fifty', 'seventyfive', 'seventyfive', 'onehundred', 'onehundred'];
     var context = document.getElementById('canvas').getContext('2d');
     var encoder;
     var i;
     var timer = 0;
-  
     for (i = 0; i < pieClasses; i++) {
       $('pie').removeClass(pieClasses[i]);
     }
@@ -337,14 +365,14 @@ app.factory('helperService', [ 'IMGUR_API_KEY', '$q', '$timeout', '$http',  func
     var gif = new GIF({
       workers: 2,
       quality: 10,
-      width:135,
-      height:100,
+      width: 135,
+      height: 100,
       workerScript: 'scripts/gif.worker.js'
     });
 
     function draw() {
       context.drawImage(video, 0, 0, 135, 100);
-      gif.addFrame(context,{copy: true, delay : 125});
+      gif.addFrame(context, {copy: true, delay: 125});
     }
 
     for (i = 0; i < 10; i++) {
@@ -361,7 +389,7 @@ app.factory('helperService', [ 'IMGUR_API_KEY', '$q', '$timeout', '$http',  func
       var binaryGif;
       var data;
       draw();
-      gif.on('finished', function(blob,data) {
+      gif.on('finished', function (blob, data) {
         deferredCreate.resolve(buildDataURL(data));
       });
 
